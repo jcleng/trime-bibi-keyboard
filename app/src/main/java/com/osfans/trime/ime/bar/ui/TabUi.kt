@@ -14,6 +14,7 @@ import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.after
+import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.centerHorizontally
 import splitties.views.dsl.constraintlayout.centerVertically
 import splitties.views.dsl.constraintlayout.constraintLayout
@@ -61,16 +62,17 @@ class TabUi(
     override val root =
         constraintLayout {
             add(
-                backButton,
-                lParams(size, size) {
+                titleText,
+                lParams(wrapContent, size) {
                     startOfParent()
+                    before(backButton, dp(8))
                     centerVertically()
                 },
             )
             add(
-                titleText,
-                lParams(wrapContent, size) {
-                    after(backButton, dp(8))
+                backButton,
+                lParams(size, size) {
+                    endOfParent()
                     centerVertically()
                 },
             )
@@ -103,7 +105,7 @@ class TabUi(
                     centerVertically()
                     if (showTitle) {
                         after(titleText, dp(8))
-                        endOfParent()
+                        before(backButton, dp(8))
                     } else {
                         centerHorizontally()
                     }

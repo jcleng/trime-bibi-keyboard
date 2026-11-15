@@ -13,7 +13,6 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import com.osfans.trime.R
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.model.ToolBar
-import splitties.views.dsl.constraintlayout.after
 import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.centerVertically
 import splitties.views.dsl.constraintlayout.constraintLayout
@@ -78,7 +77,7 @@ class AlwaysUi(
             buttonsUi.firstButton?.let { add(it, lParams(matchParent, matchParent)) }
         }
 
-    private val leftMostButton = toolButton(
+    private val primaryCornerButton = toolButton(
         theme.toolBar.primaryButton,
         R.drawable.ic_baseline_more_horiz_24,
     )
@@ -91,20 +90,20 @@ class AlwaysUi(
         }
 
     override val root: ConstraintLayout = constraintLayout {
-        val (leftWidth, leftHeight) = buttonsUi.getButtonSize(theme.toolBar.primaryButton)
+        val (primaryWidth, primaryHeight) = buttonsUi.getButtonSize(theme.toolBar.primaryButton)
         val (rightWidth, rightHeight) = buttonsUi.getButtonSize(theme.toolBar.buttons.firstOrNull())
 
         add(
-            leftMostButton,
-            lParams(leftWidth, leftHeight) {
-                startOfParent()
+            primaryCornerButton,
+            lParams(primaryWidth, primaryHeight) {
+                endOfParent()
                 centerVertically()
             },
         )
         add(
             rightButtonAnimator,
             lParams(rightWidth, rightHeight) {
-                endOfParent()
+                before(primaryCornerButton)
                 centerVertically()
             },
         )
@@ -118,7 +117,7 @@ class AlwaysUi(
         add(
             animator,
             lParams(matchConstraints, matchParent) {
-                after(leftMostButton)
+                startOfParent()
                 before(asrkbVoiceButton)
                 centerVertically()
             },
@@ -128,7 +127,7 @@ class AlwaysUi(
     }
 
     fun updateButtonsStyle() {
-        leftMostButton.updateStyle()
+        primaryCornerButton.updateStyle()
         buttonsUi.firstButton?.updateStyle()
         buttonsUi.updateStyle()
     }
@@ -138,7 +137,7 @@ class AlwaysUi(
         animator.displayedChild = state.ordinal
         currentState = state
         updateRightMostButton(state)
-        updateLeftMostButton(state)
+        updatePrimaryButton(state)
     }
 
     private fun updateRightMostButton(state: State) {
@@ -147,7 +146,7 @@ class AlwaysUi(
         rightButtonAnimator.displayedChild = if (showFirst) 1 else 0
     }
 
-    private fun updateLeftMostButton(state: State) {
+    private fun updatePrimaryButton(state: State) {
         val buttonConfig =
             if (state == State.Toolbar) {
                 theme.toolBar.primaryButton
@@ -156,7 +155,7 @@ class AlwaysUi(
             }
 
         val (buttonWidth, buttonHeight) = buttonsUi.getButtonSize(buttonConfig)
-        leftMostButton.layoutParams = leftMostButton.layoutParams.apply {
+        primaryCornerButton.layoutParams = primaryCornerButton.layoutParams.apply {
             width = buttonWidth
             height = buttonHeight
         }
