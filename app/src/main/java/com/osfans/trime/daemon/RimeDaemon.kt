@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import splitties.systemservices.notificationManager
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -50,7 +51,9 @@ object RimeDaemon {
 
     private val rimeImpl by lazy { object : RimeApi by realRime {} }
 
-    private val sessions = mutableMapOf<String, RimeSession>()
+    // Sessions are read from arbitrary threads (e.g. coroutines paging candidates) without
+    // holding [lock], so the backing map has to be safe for concurrent access.
+    private val sessions = ConcurrentHashMap<String, RimeSession>()
 
     private val lock = ReentrantLock()
 
@@ -99,7 +102,7 @@ object RimeDaemon {
         if (name !in sessions) {
             return
         }
-        sessions -= name
+        sessions.remove(name)
         if (sessions.isEmpty()) {
             realRime.finalize()
         }

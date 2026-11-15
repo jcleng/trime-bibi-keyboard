@@ -22,8 +22,15 @@ class CandidatesPagingSource(
         val pageSize = params.loadSize
         Timber.d("getCandidates(offset=$startIndex, limit=$pageSize)")
         val candidates =
-            rime.runOnReady {
-                getCandidates(startIndex, pageSize)
+            try {
+                rime.runOnReady {
+                    getCandidates(startIndex, pageSize)
+                }
+            } catch (e: IllegalStateException) {
+                // Session may be torn down while paging is still in flight (e.g. IME window
+                // detached), in which case there is nothing left to load.
+                Timber.w(e, "Rime session gone while loading candidates")
+                return LoadResult.Page(emptyList(), prevKey = null, nextKey = null)
             }
         val prevKey = if (startIndex >= pageSize) startIndex - pageSize else null
         val nextKey = if (total > 0) {
