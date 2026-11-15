@@ -48,9 +48,8 @@ class KeyView(
     private val hookShiftArrow: Boolean by lazy {
         AppPrefs.defaultInstance().keyboard.hookShiftArrow.getValue()
     }
-    private val asrkbAidlVoiceInputEnabled: Boolean by lazy {
-        AppPrefs.defaultInstance().general.asrkbAidlVoiceInputEnabled.getValue()
-    }
+    private val asrkbAidlVoiceInputEnabled: Boolean
+        get() = AppPrefs.defaultInstance().general.asrkbAidlVoiceInputEnabled.getValue()
 
     private val deletedTextBuffer = ArrayDeque<String>()
 

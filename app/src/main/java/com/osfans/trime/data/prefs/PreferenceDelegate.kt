@@ -114,3 +114,27 @@ open class PreferenceDelegate<T : Any>(
         listeners.forEach { it.onChange(key, newValue) }
     }
 }
+
+/**
+ * A boolean preference that is always `true`, regardless of what was persisted.
+ *
+ * Writes are forced back to `true` so the settings UI cannot leave the switch
+ * showing an off state while the feature is actually enabled.
+ */
+class ForceOnPreferenceDelegate(
+    sharedPreferences: SharedPreferences,
+    key: String,
+) : PreferenceDelegate<Boolean>(sharedPreferences, key, true) {
+    override fun getValue(): Boolean {
+        // Repair a stale "false" left behind by earlier versions so the
+        // settings screen renders the switch as checked.
+        if (!sharedPreferences.getBoolean(key, true)) setValue(true)
+        return true
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    override fun setValue(value: Boolean) {
+        // Keep the stored value in sync so the settings switch renders as checked.
+        sharedPreferences.edit { putBoolean(key, true) }
+    }
+}

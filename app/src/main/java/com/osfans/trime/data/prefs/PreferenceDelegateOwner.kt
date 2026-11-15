@@ -90,6 +90,24 @@ abstract class PreferenceDelegateOwner(
         return pref
     }
 
+    /**
+     * A boolean preference that is always on and cannot be turned off.
+     */
+    protected fun switchForceOn(
+        @StringRes
+        title: Int,
+        key: String,
+        @StringRes
+        summary: Int? = null,
+        enableUiOn: (() -> Boolean)? = null,
+    ): PreferenceDelegate<Boolean> {
+        val pref = ForceOnPreferenceDelegate(sharedPreferences, key)
+        val ui = PreferenceDelegateUi.Switch(title, key, true, summary, enableUiOn)
+        pref.register()
+        ui.registerUi()
+        return pref
+    }
+
     protected fun <T : Any> list(
         @StringRes
         title: Int,

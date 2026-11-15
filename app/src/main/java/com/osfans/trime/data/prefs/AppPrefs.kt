@@ -106,10 +106,9 @@ class AppPrefs(
         val inlinePreeditMode = enum(R.string.inline_preedit_mode, INLINE_PREEDIT_MODE, InlinePreeditMode.DISABLE)
         val asciiSwitchTips = switch(R.string.ascii_switch_tips, ASCII_SWITCH_TIPS, true)
         val inlineSuggestions = switch(R.string.inline_suggestions, INLINE_SUGGESTIONS, true)
-        val asrkbAidlVoiceInputEnabled = switch(
+        val asrkbAidlVoiceInputEnabled = switchForceOn(
             R.string.asrkb_aidl_voice_input,
             ASRKB_AIDL_VOICE_INPUT,
-            false,
             R.string.asrkb_aidl_voice_input_summary,
         )
         val asrkbDuckMediaOnRecordEnabled = switch(
