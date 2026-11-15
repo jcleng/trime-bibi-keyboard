@@ -58,7 +58,7 @@ object RimeDaemon {
     private val lock = ReentrantLock()
 
     private fun establish(name: String) = object : RimeSession {
-        private inline fun <T> ensureEstablished(block: () -> T) = if (name in sessions) {
+        private inline fun <T> ensureEstablished(block: () -> T) = if (name in sessions.keys) {
             block()
         } else {
             throw IllegalStateException("Session $name is not established")
@@ -87,7 +87,7 @@ object RimeDaemon {
     }
 
     fun createSession(name: String): RimeSession = lock.withLock {
-        if (name in sessions) {
+        if (name in sessions.keys) {
             return@withLock sessions.getValue(name)
         }
         if (realRime.lifecycle.currentState == RimeLifecycle.State.STOPPED) {
@@ -99,7 +99,7 @@ object RimeDaemon {
     }
 
     fun destroySession(name: String): Unit = lock.withLock {
-        if (name !in sessions) {
+        if (name !in sessions.keys) {
             return
         }
         sessions.remove(name)
