@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2015 - 2024 Rime community
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# 仅用于个人 fork 的手动构建验证：产出 debug APK，用于检查键盘顶栏按钮位置改动。
+name: Manual Build
+on:
+  workflow_dispatch:
+
+env:
+  CI_NAME: Manual Build CI
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      BUILD_ABI: arm64-v8a,armeabi-v7a,x86_64
+    steps:
+      - name: Fetch source code
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: 17
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install CMake
+        run: |
+          sdkmanager --install "cmake;3.31.6"
+
+      - name: Build debug Trime
+        run: |
+          make debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: trime-debug-apk
+          path: app/build/outputs/apk/debug/
+          retention-days: 30
