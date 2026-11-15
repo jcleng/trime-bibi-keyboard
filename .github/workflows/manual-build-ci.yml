@@ -2,10 +2,24 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# 仅用于个人 fork 的手动构建验证：产出 debug APK，用于检查键盘顶栏按钮位置改动。
+# 个人 fork 的手动构建：产出 debug APK，并发布到 GitHub Releases。
+# 每次运行都会覆盖同一个 tag（默认 debug-latest），保持该 Release 上始终是最新构建。
 name: Manual Build
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: '发布使用的 tag 名（同一 tag 会被覆盖更新）'
+        required: false
+        default: 'debug-latest'
+      prerelease:
+        description: '标记为预发布 (prerelease)'
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: write
 
 env:
   CI_NAME: Manual Build CI
@@ -45,3 +59,32 @@ jobs:
           name: trime-debug-apk
           path: app/build/outputs/apk/debug/
           retention-days: 30
+
+      - name: Collect release notes
+        id: meta
+        shell: bash
+        run: |
+          echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "subject=$(git log -1 --pretty=%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Releases
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ inputs.release_tag || 'debug-latest' }}
+          name: Debug build (${{ steps.meta.outputs.short_sha }})
+          prerelease: ${{ inputs.prerelease }}
+          allowUpdates: true
+          # 覆盖同一 tag 上的旧资产，避免重复上传失败
+          removeArtifacts: true
+          replacesArtifacts: true
+          artifacts: "app/build/outputs/apk/debug/*.apk"
+          artifactErrorsFailBuild: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            Debug APK built from `${{ github.ref_name }}` at `${{ steps.meta.outputs.short_sha }}`.
+
+            **Commit:** ${{ steps.meta.outputs.subject }}
+
+            **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            > Debug 构建，使用测试签名；与已安装的正式版包名不同（后缀 `.debug`），可共存安装。

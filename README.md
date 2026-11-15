@@ -34,6 +34,75 @@ Trime is originally a frontend of open-source [Android Traditional Chinese IME],
 
 - Configurations [rimerc](https://github.com/Bambooin/rimerc)
 
+## Local Voice Input (BiBi Keyboard)
+
+This fork (BiBi Keyboard) adds local voice input to Trime. Speech recognition is **not built in**: the IME binds to a separate speech app over AIDL and streams audio to it for recognition. In this branch, long-pressing a key mapped to `VOICE_ASSIST` starts a hold-to-talk session and draws a live audio waveform over the whole keyboard area, instead of switching to another voice IME.
+
+Full documentation: <https://bibidocs.brycewg.com/>
+
+### Prerequisites
+
+1. Install the speech app 「说点啥」, whose package name is either `com.brycewg.asrkb` (open-source) or `com.brycewg.asrkb.pro` (Pro).
+2. Inside that app, enable **"Allow external IME link (AIDL)"** (允许外部输入法联动).
+
+If the app is missing or the AIDL switch is off, holding the voice key reports that the service was not found, or asks you to enable the external IME link.
+
+### How It Works
+
+- The preference **"BiBi Keyboard AIDL voice input"** (`asrkb_aidl_voice_input`) is force-enabled in this branch: reads always return `true`, writes are rewritten to `true`, and the settings switch is shown as on and cannot be turned off.
+- A long press on a key whose action resolves to Android's `KEYCODE_VOICE_ASSIST` therefore enters hold-to-talk mode and shows the waveform overlay. The legacy path (`CommonKeyboardActionListener.switchToVoiceInputMethod()`, which switched to the voice IME configured in the system settings) is no longer taken.
+- Releasing the key stops recording and commits the recognized text.
+
+### Settings
+
+The last two items are only effective while the AIDL voice input switch is on.
+
+| Preference | Key | Default |
+| --- | --- | --- |
+| BiBi Keyboard AIDL voice input | `asrkb_aidl_voice_input` | On (forced) |
+| Pause other media while recording | `asrkb_duck_media_on_record` | On |
+| Toolbar mic button | `asrkb_aidl_voice_toolbar_button` | Off |
+
+With the toolbar mic button enabled, a mic button appears on the toolbar: tap once to start recording, tap again to stop and commit. If a change does not take effect immediately, switch to another theme in the keyboard style settings and switch back to refresh the UI.
+
+### Key Mapping
+
+Use the key name `VOICE_ASSIST` in your theme. It maps to Android's `KEYCODE_VOICE_ASSIST`, which is what the long-press handler matches (`action.code == KeyEvent.KEYCODE_VOICE_ASSIST`).
+
+Examples already shipped in this repository:
+
+```yaml
+# app/src/main/assets/shared/tongwenfeng.trime.yaml (shared/preset_keyboards, ~line 3901, 3942)
+- {label: '✾', click: Keyboard_v2, long_click: VOICE_ASSIST, composing: Keyboard_v, ascii: 'v', width: 11.5, key_back_color: bh4, key_text_color: th4}
+
+# app/src/main/assets/shared/tongwenfeng.trime.yaml (~line 3962, shared/preset_keys)
+VOICE_ASSIST: {label: 语音, functional: true, send: VOICE_ASSIST}
+
+# app/src/main/assets/shared/trime.yaml (~line 863, shared/preset_keys)
+VOICE_ASSIST: {label: 語音, send: VOICE_ASSIST}
+
+# app/src/main/assets/shared/trime.yaml (~line 1260 and 1656, space key long press)
+- {click: space, long_click: VOICE_ASSIST, width: 30}
+```
+
+Minimal example for your own theme. Add `long_click: VOICE_ASSIST` to a key in a keyboard layout under `preset_keyboards`, and define the key itself under `preset_keys` (or in the key definition section of your theme):
+
+```yaml
+preset_keyboards:
+  qwerty:
+    keys:
+      - {click: space, long_click: VOICE_ASSIST, width: 30}
+
+preset_keys:
+  VOICE_ASSIST: {label: 语音, send: VOICE_ASSIST}
+```
+
+Common pitfalls:
+
+- Defining the key in the layout but omitting the `VOICE_ASSIST` entry in `preset_keys` (or your theme's key section) means the action does not resolve, so nothing happens.
+- Using another key name, such as a custom `voice`, produces a code that does not match `KEYCODE_VOICE_ASSIST`; the long press then falls back to the legacy behavior (switching to another IME) or does nothing.
+- Binding `VOICE_ASSIST` only as a click action keeps the normal click behavior; the hold-to-talk session is triggered from the long-press action.
+
 ## History
 
 TRIME is the abbreviation of _Tongwen RIME_ or _ThaeRv Input Method_.
