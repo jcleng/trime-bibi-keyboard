@@ -32,6 +32,75 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 - 配置文档 [rimerc](https://github.com/Bambooin/rimerc)
 
+## 本地语音输入（BiBi 键盘）
+
+本分支（BiBi 键盘）在同文的基础上增加了本地语音输入。语音识别**并非内置**：输入法通过 AIDL 绑定一个独立的语音 App，把音频交给它识别。在本分支中，长按映射为 `VOICE_ASSIST` 的按键会进入“按住说话”模式，并在整个键盘区域上叠一层实时音频波形，而不再切换到其他语音输入法。
+
+完整说明见文档站：<https://bibidocs.brycewg.com/>
+
+### 前置条件
+
+1. 安装语音 App「说点啥」，包名可以是 `com.brycewg.asrkb`（开源版）或 `com.brycewg.asrkb.pro`（Pro 版）。
+2. 在该 App 内开启**「允许外部输入法联动（AIDL）」**。
+
+如果未安装该 App，或未开启 AIDL 开关，长按语音键会提示服务未找到，或提示需要在说点啥中开启外部输入法联动。
+
+### 工作方式
+
+- 本分支中「说点啥 AIDL 语音输入」开关（`asrkb_aidl_voice_input`）被**强制开启**：读取恒为 `true`，写入也被改写为 `true`，设置页显示为开且无法关闭。
+- 因此长按动作解析为 Android `KEYCODE_VOICE_ASSIST` 的按键会直接进入按住说话模式并显示波形；不再走旧逻辑（`CommonKeyboardActionListener.switchToVoiceInputMethod()`，即切换到系统设置中配置的语音输入法）。
+- 松手即停止录音并上屏识别结果。
+
+### 设置项
+
+后两项在 AIDL 语音输入开关开启时才生效。
+
+| 设置项 | key | 默认 |
+| --- | --- | --- |
+| 说点啥 AIDL 语音输入 | `asrkb_aidl_voice_input` | 开（强制） |
+| 录音时暂停其他媒体 | `asrkb_duck_media_on_record` | 开 |
+| 工具栏麦克风按钮 | `asrkb_aidl_voice_toolbar_button` | 关 |
+
+开启「工具栏麦克风按钮」后，工具栏会显示麦克风按钮：点按开始录音，再次点按停止并上屏。开关切换后如未立即生效，请在键盘样式中切换到其他主题再切换回来以刷新 UI。
+
+### 键位配置
+
+在主题中使用键名 `VOICE_ASSIST`，它对应 Android 的 `KEYCODE_VOICE_ASSIST`，长按处理器正是按 `action.code == KeyEvent.KEYCODE_VOICE_ASSIST` 匹配的。
+
+本仓库中已有的示例：
+
+```yaml
+# app/src/main/assets/shared/tongwenfeng.trime.yaml（preset_keyboards 段，约 3901、3942 行）
+- {label: '✾', click: Keyboard_v2, long_click: VOICE_ASSIST, composing: Keyboard_v, ascii: 'v', width: 11.5, key_back_color: bh4, key_text_color: th4}
+
+# app/src/main/assets/shared/tongwenfeng.trime.yaml（约 3962 行，preset_keys 段）
+VOICE_ASSIST: {label: 语音, functional: true, send: VOICE_ASSIST}
+
+# app/src/main/assets/shared/trime.yaml（约 863 行，preset_keys 段）
+VOICE_ASSIST: {label: 語音, send: VOICE_ASSIST}
+
+# app/src/main/assets/shared/trime.yaml（约 1260、1656 行，空格键长按）
+- {click: space, long_click: VOICE_ASSIST, width: 30}
+```
+
+自己写配置的最小示例：在 `preset_keyboards` 的某个键盘布局里给一个键加 `long_click: VOICE_ASSIST`，并在 `preset_keys`（或该主题的键定义段）里定义 `VOICE_ASSIST`：
+
+```yaml
+preset_keyboards:
+  qwerty:
+    keys:
+      - {click: space, long_click: VOICE_ASSIST, width: 30}
+
+preset_keys:
+  VOICE_ASSIST: {label: 语音, send: VOICE_ASSIST}
+```
+
+常见坑：
+
+- 布局里加了 `long_click: VOICE_ASSIST`，但 `preset_keys`（或主题的键定义段）里缺少 `VOICE_ASSIST` 条目，动作无法解析，长按什么都不发生。
+- 用了别的键名（例如自定义 `voice`），得到的 code 匹配不上 `KEYCODE_VOICE_ASSIST`，长按会退化成旧行为（切换到别的输入法）或什么都不发生。
+- 只在 `click` 上绑 `VOICE_ASSIST` 会保留普通点按行为；按住说话是由长按动作触发的。
+
 ## 沿革
 
 TRIME 是 Tongwen RIME 或是 ThaeRvInputMEthod 的缩写:
