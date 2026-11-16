@@ -124,10 +124,9 @@ object AsrkbSpeechClient {
                                             CB_onPartial -> {
                                                 data.enforceInterface(DESCRIPTOR_CB)
                                                 data.readInt()
-                                                val text = data.readString() ?: ""
-                                                ctx.lifecycleScope.launch {
-                                                    ctx.currentInputConnection?.setComposingText(text, 1)
-                                                }
+                                                // Partial results are intentionally not shown as composing text,
+                                                // so that nothing is left in an editable (composing) state.
+                                                data.readString()
                                                 reply?.writeNoException()
                                                 true
                                             }
@@ -136,6 +135,11 @@ object AsrkbSpeechClient {
                                                 val callbackSessionId = data.readInt()
                                                 val text = data.readString() ?: ""
                                                 ctx.lifecycleScope.launch {
+                                                    // Drop any composing region before committing, so the
+                                                    // result lands directly in the editor.
+                                                    runCatching {
+                                                        ctx.currentInputConnection?.finishComposingText()
+                                                    }
                                                     ctx.commitText(text)
                                                     startCorrectionObservation(ctx, callbackSessionId, text)
                                                 }
