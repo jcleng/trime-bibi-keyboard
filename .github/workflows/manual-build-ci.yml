@@ -81,7 +81,7 @@ jobs:
           "$APKSIGNER" verify --print-certs "$APK" | tee /tmp/apk-certs.txt
           EXPECTED=$(keytool -list -v -keystore "$RUNNER_TEMP/fixed.keystore" \
             -storepass "${{ secrets.TRIME_KEYSTORE_STORE_PASSWORD }}" \
-            | grep -i "SHA256:" | head -n 1 | tr -d ' ' | cut -d: -f2- | tr 'A-F' 'a-f')
+            | grep -i "SHA256:" | head -n 1 | cut -d: -f2- | tr -d ' ' | tr -d ':' | tr 'A-F' 'a-f')
           ACTUAL=$(grep -i "SHA-256 digest" /tmp/apk-certs.txt | head -n 1 | awk -F': ' '{print $2}' | tr -d ':' | tr 'A-F' 'a-f')
           echo "expected=$EXPECTED"
           echo "actual  =$ACTUAL"
