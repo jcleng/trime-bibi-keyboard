@@ -123,10 +123,11 @@ object AsrkbSpeechClient {
                                             }
                                             CB_onPartial -> {
                                                 data.enforceInterface(DESCRIPTOR_CB)
-                                                data.readInt()
+                                                val partialSid = data.readInt()
                                                 // Partial results are intentionally not shown as composing text,
                                                 // so that nothing is left in an editable (composing) state.
-                                                data.readString()
+                                                val partialText = data.readString() ?: ""
+                                                Timber.d("ASRKB onPartial: sid=$partialSid, len=${partialText.length}")
                                                 reply?.writeNoException()
                                                 true
                                             }
@@ -134,12 +135,15 @@ object AsrkbSpeechClient {
                                                 data.enforceInterface(DESCRIPTOR_CB)
                                                 val callbackSessionId = data.readInt()
                                                 val text = data.readString() ?: ""
+                                                Timber.d("ASRKB onFinal: sid=$callbackSessionId, len=${text.length}")
                                                 ctx.lifecycleScope.launch {
-                                                    // Drop any composing region before committing, so the
-                                                    // result lands directly in the editor.
-                                                    runCatching {
-                                                        ctx.currentInputConnection?.finishComposingText()
+                                                    val ic = ctx.currentInputConnection
+                                                    Timber.d("ASRKB commit: ic=${ic != null}, editable=${ctx.currentInputEditorInfo?.inputType}")
+                                                    if (ic == null) {
+                                                        Timber.w("ASRKB commit skipped: no input connection")
                                                     }
+                                                    // commitText replaces any composing region, so the
+                                                    // result lands directly in the editor.
                                                     ctx.commitText(text)
                                                     startCorrectionObservation(ctx, callbackSessionId, text)
                                                 }
@@ -277,6 +281,7 @@ object AsrkbSpeechClient {
         if (!holding) return
         holding = false
 
+        Timber.d("ASRKB stopHoldSession: state=$currentState, hasPcmFrame=$hasPcmFrame")
         when (currentState) {
             STATE_RECORDING, STATE_PROCESSING -> if (hasPcmFrame) finishPcmSession() else cancelAndUnbind()
             else -> cancelAndUnbind()
