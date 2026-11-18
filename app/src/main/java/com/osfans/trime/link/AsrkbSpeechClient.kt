@@ -70,6 +70,10 @@ object AsrkbSpeechClient {
     private var negotiationJob: Job? = null
     private val negotiationGate = AsrkbNegotiationGate()
 
+    @Volatile
+    private var lastPartialText: String = ""
+    private var finalFallbackJob: Job? = null
+
     fun startHoldSession(service: TrimeInputMethodService) {
         if (bound && remote != null && sessionId > 0) {
             if (!holding) {
@@ -86,6 +90,8 @@ object AsrkbSpeechClient {
         ctxRef = service
         holding = true
         hasPcmFrame = false
+        lastPartialText = ""
+        cancelFinalFallback()
         sessionEditorGeneration = editorGeneration.currentGeneration
         prepareInputTarget(service)
 
@@ -127,6 +133,9 @@ object AsrkbSpeechClient {
                                                 // Partial results are intentionally not shown as composing text,
                                                 // so that nothing is left in an editable (composing) state.
                                                 val partialText = data.readString() ?: ""
+                                                if (partialSid == sessionId && partialText.isNotEmpty()) {
+                                                    lastPartialText = partialText
+                                                }
                                                 Timber.d("ASRKB onPartial: sid=$partialSid, len=${partialText.length}")
                                                 reply?.writeNoException()
                                                 true
@@ -135,6 +144,7 @@ object AsrkbSpeechClient {
                                                 data.enforceInterface(DESCRIPTOR_CB)
                                                 val callbackSessionId = data.readInt()
                                                 val text = data.readString() ?: ""
+                                                cancelFinalFallback()
                                                 Timber.d("ASRKB onFinal: sid=$callbackSessionId, len=${text.length}")
                                                 ctx.lifecycleScope.launch {
                                                     val ic = ctx.currentInputConnection
@@ -283,9 +293,39 @@ object AsrkbSpeechClient {
 
         Timber.d("ASRKB stopHoldSession: state=$currentState, hasPcmFrame=$hasPcmFrame")
         when (currentState) {
-            STATE_RECORDING, STATE_PROCESSING -> if (hasPcmFrame) finishPcmSession() else cancelAndUnbind()
+            STATE_RECORDING, STATE_PROCESSING -> if (hasPcmFrame) {
+                finishPcmSession()
+                // The speech service may crash (e.g. sherpa-onnx VAD failure) and never
+                // deliver onFinal. Fall back to the last partial result so that the user
+                // still gets text committed directly into the editor.
+                scheduleFinalFallback()
+            } else {
+                cancelAndUnbind()
+            }
             else -> cancelAndUnbind()
         }
+    }
+
+    private fun scheduleFinalFallback() {
+        cancelFinalFallback()
+        val ctx = ctxRef ?: return
+        if (lastPartialText.isEmpty()) return
+        finalFallbackJob = ctx.lifecycleScope.launch {
+            delay(FINAL_FALLBACK_TIMEOUT_MS)
+            if (holding) return@launch
+            val text = lastPartialText
+            if (text.isEmpty()) return@launch
+            Timber.w("ASRKB final fallback: committing last partial (len=${text.length})")
+            lastPartialText = ""
+            finalFallbackJob = null
+            ctx.commitText(text)
+            unbind(clearUi = false)
+        }
+    }
+
+    private fun cancelFinalFallback() {
+        finalFallbackJob?.cancel()
+        finalFallbackJob = null
     }
 
     fun isHolding(): Boolean = holding
@@ -305,6 +345,7 @@ object AsrkbSpeechClient {
             runCatching { VoiceOverlayUiBridge.onDone?.invoke() }
             VoiceOverlayUiBridge.clear()
         }
+        cancelFinalFallback()
         callbackBinder = null
         cancelNegotiation()
         correctionJob?.cancel()
@@ -918,6 +959,7 @@ object AsrkbSpeechClient {
 
     private const val COMMIT_VERIFY_DELAY_MS = 40L
     private const val CORRECTION_POLL_MS = 1_000L
+    private const val FINAL_FALLBACK_TIMEOUT_MS = 4_000L
 
     private const val DESCRIPTOR_CB = "com.brycewg.asrkb.aidl.ISpeechCallback"
     private const val CB_onState = IBinder.FIRST_CALL_TRANSACTION + 0
