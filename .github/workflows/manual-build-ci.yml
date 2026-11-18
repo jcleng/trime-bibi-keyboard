@@ -73,6 +73,24 @@ jobs:
         run: |
           make debug
 
+      - name: Verify APK is signed with the fixed keystore
+        run: |
+          APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          echo "APK: $APK"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          "$APKSIGNER" verify --print-certs "$APK" | tee /tmp/apk-certs.txt
+          EXPECTED=$(keytool -list -v -keystore "$RUNNER_TEMP/fixed.keystore" \
+            -storepass "${{ secrets.TRIME_KEYSTORE_STORE_PASSWORD }}" \
+            | grep -i "SHA256:" | head -n 1 | tr -d ' ' | cut -d: -f2- | tr 'A-F' 'a-f')
+          ACTUAL=$(grep -i "SHA-256 digest" /tmp/apk-certs.txt | head -n 1 | awk -F': ' '{print $2}' | tr -d ':' | tr 'A-F' 'a-f')
+          echo "expected=$EXPECTED"
+          echo "actual  =$ACTUAL"
+          if [ -z "$ACTUAL" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::APK signature does not match the fixed keystore"
+            exit 1
+          fi
+          echo "### Fixed signature verified: $ACTUAL" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v6
         with:
