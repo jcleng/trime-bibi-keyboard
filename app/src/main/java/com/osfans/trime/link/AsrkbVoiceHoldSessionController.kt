@@ -6,7 +6,9 @@
 package com.osfans.trime.link
 
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.ime.core.TrimeInputMethodService
+import kotlinx.coroutines.launch
 
 /**
  * Shared controller for the ASRKB hold-to-talk session and overlay callbacks.
@@ -22,12 +24,22 @@ internal class AsrkbVoiceHoldSessionController(
 ) {
     private var startedByController = false
 
+    /**
+     * The bundled on-device SenseVoice model is preferred: it runs entirely in this process and
+     * is immune to the external ASR app crashing. The AIDL client remains as a fallback for
+     * builds that ship without the model assets.
+     */
+    private val useBuiltinEngine: Boolean
+        get() = SenseVoiceModel.isBundled(service)
+
     fun isRunning(): Boolean = startedByController
 
     fun start() {
         if (startedByController) return
 
         val executor = ContextCompat.getMainExecutor(service)
+        val builtin = useBuiltinEngine
+
         showOverlay()
         startedByController = true
 
@@ -50,7 +62,25 @@ internal class AsrkbVoiceHoldSessionController(
             VoiceOverlayUiBridge.clear()
         }
 
-        AsrkbSpeechClient.startHoldSession(service)
+        if (builtin) {
+            // First use copies ~228 MB out of the APK; only start recording once ready so the
+            // very first hold does not silently produce nothing.
+            service.lifecycleScope.launch {
+                val ready = SenseVoiceModel.ensureExtracted(service)
+                if (!startedByController) return@launch
+                if (ready) {
+                    SenseVoiceEngine.startHoldSession(service)
+                } else {
+                    service.toast(com.osfans.trime.R.string.voice_model_missing)
+                    hideOverlay()
+                    onSessionFinished?.invoke()
+                    VoiceOverlayUiBridge.clear()
+                    startedByController = false
+                }
+            }
+        } else {
+            AsrkbSpeechClient.startHoldSession(service)
+        }
     }
 
     fun stopIfStarted() {
@@ -63,6 +93,9 @@ internal class AsrkbVoiceHoldSessionController(
         hideOverlay()
         VoiceOverlayUiBridge.clear()
         onSessionFinished?.invoke()
+        if (SenseVoiceEngine.isHolding()) {
+            SenseVoiceEngine.stopHoldSession()
+        }
         if (AsrkbSpeechClient.isHolding()) {
             AsrkbSpeechClient.stopHoldSession()
         }

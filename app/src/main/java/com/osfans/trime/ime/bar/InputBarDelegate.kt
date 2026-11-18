@@ -175,12 +175,12 @@ class InputBarDelegate : InputBroadcastReceiver {
                 val enabled = asrkbAidlVoiceInputEnabled && asrkbAidlVoiceToolbarButtonEnabled
                 if (enabled) {
                     visibility = View.VISIBLE
-                    setIcon(if (AsrkbSpeechClient.isHolding()) R.drawable.ic_baseline_stop_24 else R.drawable.ic_baseline_mic_24)
+                    setIcon(if (isVoiceHolding()) R.drawable.ic_baseline_stop_24 else R.drawable.ic_baseline_mic_24)
                 } else {
                     visibility = View.GONE
                 }
                 setOnClickListener {
-                    if (AsrkbSpeechClient.isHolding()) {
+                    if (isVoiceHolding()) {
                         stopAsrkbVoiceFromToolbar()
                         return@setOnClickListener
                     }
@@ -199,6 +199,7 @@ class InputBarDelegate : InputBroadcastReceiver {
             }
             asrkbHoldingChangedListener = holdingListener
             AsrkbSpeechClient.onHoldingChanged = holdingListener
+            SenseVoiceEngine.onHoldingChanged = holdingListener
             clipboardUi.dismiss.setOnClickListener {
                 dismissClipboardSuggestion()
             }
@@ -324,6 +325,9 @@ class InputBarDelegate : InputBroadcastReceiver {
                         if (listener != null && AsrkbSpeechClient.onHoldingChanged === listener) {
                             AsrkbSpeechClient.onHoldingChanged = null
                         }
+                        if (listener != null && SenseVoiceEngine.onHoldingChanged === listener) {
+                            SenseVoiceEngine.onHoldingChanged = null
+                        }
                         asrkbHoldingChangedListener = null
                     }
                 },
@@ -417,4 +421,7 @@ class InputBarDelegate : InputBroadcastReceiver {
     private fun stopAsrkbVoiceFromToolbar() {
         asrkbVoiceHoldController.stop()
     }
+
+    private fun isVoiceHolding(): Boolean =
+        AsrkbSpeechClient.isHolding() || SenseVoiceEngine.isHolding()
 }

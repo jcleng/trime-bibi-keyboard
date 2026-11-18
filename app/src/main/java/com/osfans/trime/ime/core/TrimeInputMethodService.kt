@@ -295,6 +295,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
 
     override fun onDestroy() {
         AsrkbSpeechClient.onServiceDestroyed(this)
+        SenseVoiceEngine.onServiceDestroyed(this)
         asrkbClipboardSyncBridge.destroy()
         InputFeedbackManager.destroy()
         inputView = null

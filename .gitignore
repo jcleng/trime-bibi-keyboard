@@ -481,3 +481,6 @@ app/src/main/jni/boost/
 # kotlin
 .kotlin
 
+
+# Bundled SenseVoice speech model (downloaded by script/fetch-sensevoice-model.sh)
+app/src/main/assets/sensevoice/

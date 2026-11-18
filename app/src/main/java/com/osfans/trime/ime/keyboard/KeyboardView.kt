@@ -119,7 +119,11 @@ class KeyboardView(
         get() = keyboard.mShiftKey?.isOn == true
 
     fun onDetach() {
-        if (AsrkbSpeechClient.isHolding()) {
+        if (SenseVoiceEngine.isHolding()) {
+            hideVoiceOverlay()
+            VoiceOverlayUiBridge.clear()
+            SenseVoiceEngine.cancel()
+        } else if (AsrkbSpeechClient.isHolding()) {
             hideVoiceOverlay()
             VoiceOverlayUiBridge.clear()
             AsrkbSpeechClient.stopHoldSession()

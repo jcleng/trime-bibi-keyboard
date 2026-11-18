@@ -254,6 +254,7 @@
     <string name="asrkb_err_feature_disabled">请先在说点啥中开启“允许外部输入法联动（AIDL）”。</string>
     <string name="asrkb_client_need_mic_permission">语音输入需要麦克风权限。</string>
     <string name="asrkb_err_audio_record_failed">音频录制初始化失败，麦克风可能被其他应用占用。</string>
+    <string name="voice_model_missing">语音模型未安装，请先安装离线语音模型。</string>
     <string name="asrkb_err_unsupported">当前供应商不支持外部推送 PCM。</string>
     <string name="asrkb_err_start_failed_with_code">启动会话失败（错误码 %1$d）</string>
     <string name="asrkb_err_service_error_with_code">语音服务错误（错误码 %1$d）</string>

@@ -67,6 +67,18 @@ android {
         debug {
             applicationIdSuffix = ".debug"
 
+            // Use the same fixed keystore as release when available, so CI builds keep a
+            // stable signature and can be installed over each other.
+            signingConfig =
+                project.signKeyFile?.let {
+                    signingConfigs.create("debugFixed") {
+                        storeFile = it
+                        storePassword = project.signKeyStorePwd
+                        keyAlias = project.signKeyAlias
+                        keyPassword = project.signKeyPwd
+                    }
+                }
+
             resValue("string", "trime_app_name", "@string/app_name_debug")
         }
         all {
@@ -122,6 +134,12 @@ android {
                     "/kotlin-tooling-metadata.json",
                 )
         }
+    }
+
+    androidResources {
+        // The SenseVoice model is huge and sherpa-onnx needs it on a real file path;
+        // keep it uncompressed so extraction from assets stays fast.
+        noCompress += listOf("onnx")
     }
 }
 
@@ -190,6 +208,7 @@ dependencies {
     implementation(libs.splitties.views.dsl.recyclerview)
     implementation(libs.splitties.views.recyclerview)
     implementation(libs.aboutlibraries.core)
+    implementation(libs.sherpa.onnx)
     implementation(libs.iconics.core)
     implementation(libs.community.material.typeface) {
         artifact { type = "aar" }
