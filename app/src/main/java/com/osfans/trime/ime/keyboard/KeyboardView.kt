@@ -24,6 +24,7 @@ import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.popup.PopupDelegate
 import com.osfans.trime.ime.voice.WaveformView
 import com.osfans.trime.link.AsrkbSpeechClient
+import com.osfans.trime.link.SenseVoiceEngine
 import com.osfans.trime.link.VoiceOverlayUiBridge
 import timber.log.Timber
 import androidx.core.graphics.ColorUtils as AndroidColorUtils

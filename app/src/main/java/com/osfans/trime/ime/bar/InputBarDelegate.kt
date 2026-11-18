@@ -42,6 +42,7 @@ import com.osfans.trime.ime.window.BoardWindow
 import com.osfans.trime.ime.window.BoardWindowManager
 import com.osfans.trime.link.AsrkbSpeechClient
 import com.osfans.trime.link.AsrkbVoiceHoldSessionController
+import com.osfans.trime.link.SenseVoiceEngine
 import com.osfans.trime.ui.main.ClipEditActivity
 import com.osfans.trime.util.AppUtils
 import kotlinx.coroutines.Job

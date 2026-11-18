@@ -52,6 +52,7 @@ import com.osfans.trime.ime.composition.CandidatesView
 import com.osfans.trime.ime.keyboard.InputFeedbackManager
 import com.osfans.trime.link.AsrkbClipboardSyncBridge
 import com.osfans.trime.link.AsrkbSpeechClient
+import com.osfans.trime.link.SenseVoiceEngine
 import com.osfans.trime.receiver.RimeIntentReceiver
 import com.osfans.trime.util.any
 import com.osfans.trime.util.findSectionFrom

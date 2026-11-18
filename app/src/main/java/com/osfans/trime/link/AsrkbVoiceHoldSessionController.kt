@@ -8,6 +8,7 @@ package com.osfans.trime.link
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.ime.core.TrimeInputMethodService
+import com.osfans.trime.util.toast
 import kotlinx.coroutines.launch
 
 /**
